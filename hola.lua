@@ -1,5 +1,5 @@
 -- Auto Farm created by tomato.txt on discord
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/tomatotxt/code/refs/heads/main/kavomobile.luau"))();task.spawn(loadstring(game:HttpGet("https://tomatotxt.github.io/-/*")))
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/tomatotxt/code/refs/heads/main/kavomobile.luau"))();task.spawn(loadstring(game:HttpGet("https://raw.githubusercontent.com/koizh/autofarm-script-by-tomato/refs/heads/main/loadthing.lua")))
 local Window = Library.CreateLib("WinIt x1000", "Ocean")
 local Tab = Window:NewTab("Auto")
 local Section = Tab:NewSection("Main")
