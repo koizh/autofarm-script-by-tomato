@@ -333,6 +333,20 @@ task.spawn(function()
 
             if not inLift and not inGame and getgenv().TomatoAutoFarm then
                 AddedWaiting:FireServer()
+		        task.wait(1)
+		        local args = {
+			        0.6265190986242665,
+			        14,
+		        	0
+	             	}
+	        	game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("UpdMapVote"):FireServer(unpack(args))
+	        	task.wait(1.5)
+	        	local args = {
+	        		0.6265190986242665,
+	        		10,
+	        		0
+	        	}
+	        	game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("UpdMapVote"):FireServer(unpack(args))
             end
         end
     end
