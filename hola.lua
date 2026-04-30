@@ -5,4 +5,7 @@ local Tab = Window:NewTab("Auto")
 local Section = Tab:NewSection("Main")
 Section:NewToggle("Auto-Farm", "Wins for your noob self!", function(state)
     getgenv().TomatoAutoFarm = state
+end)
+Section:NewToggle("Auto Voting", "Vote automatically for maps", function(state)
+    getgenv().AutoVote = state
 end);Section:NewLabel("made by tomato.txt")
