@@ -3,25 +3,26 @@
 -- ==============================================================================
 
 if getgenv().TomatoConnections then
-    print("!!! OVERRIDING PREVIOUS SCRIPT INSTANCE !!!")
-    for i, connection in pairs(getgenv().TomatoConnections) do
-        if connection then
-            pcall(function() connection:Disconnect() end)
-        end
-    end
-    _G.LoopCancel = true
-    getgenv().TomatoAutoFarm = false
-    task.wait(0.2)
+	print("!!! OVERRIDING PREVIOUS SCRIPT INSTANCE !!!")
+	for i, connection in pairs(getgenv().TomatoConnections) do
+		if connection then
+			pcall(function() connection:Disconnect() end)
+		end
+	end
+	_G.LoopCancel = true
+	getgenv().TomatoAutoFarm = false
+	task.wait(0.2)
 end
 
 getgenv().TomatoConnections = {}
 
 local function TrackConnection(connection)
-    table.insert(getgenv().TomatoConnections, connection)
-    return connection
+	table.insert(getgenv().TomatoConnections, connection)
+	return connection
 end
 
 getgenv().TomatoAutoFarm = true
+getgenv().AutoVote = true
 
 -- ==============================================================================
 -- [SETUP & LOCALS]
@@ -39,6 +40,48 @@ local Workspace = game:GetService("Workspace")
 local Multiplayer = Workspace:WaitForChild("Multiplayer")
 local Camera = Workspace.CurrentCamera
 
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui") :: PlayerGui
+local VotingFrame = PlayerGui:WaitForChild("GameGui").VoteMap.Window.Frame :: Frame
+local RemoteFolderSecond = ReplicatedStorage:FindFirstChild("Remote") :: Folder
+local CL_MAIN_GameScript = LocalPlayer.PlayerScripts:WaitForChild("CL_MAIN_GameScript") :: LocalScript
+local NotifyRemoteClient = CL_MAIN_GameScript:FindFirstChild("Notify") :: BindableEvent
+local AlertRemoteClient = CL_MAIN_GameScript:FindFirstChild("Alert") :: BindableEvent
+local DoMapVote = CL_MAIN_GameScript:FindFirstChild("DoMapVote") :: BindableEvent
+local NewMapVote = RemoteFolderSecond:FindFirstChild("NewMapVote") :: RemoteEvent
+
+local MapsToVote = {}
+
+local BlacklistedMaps = {
+	"Mars Station", -- crazy maps
+	"Undersea Facility",
+	"Virulent Junkyard",
+	"Chaoz Japan",
+	"Submerging Coastland",
+	"Spider Dungeon",
+	"Desolate Domain",
+	"Nightmare Castle",
+	"End Of The Line",
+	"Lighthouse",
+	"Casino Of Envy",
+	"Mirage Saloon",
+	"Underworld Castle",
+	"Abyssal Remnants",
+	"Duskland Enigma",
+	"Concrete Jungle",
+	"Forest Facility",
+	"Spectral Hideaway",
+	"Smoldering Fractured Realm",
+	"The Malfunction of Time",
+	"Pursuit",
+	"Liminal Fruticore",
+	"Firewatch",
+	"Twilight Park",
+	"Pitfall Temple",
+	"Calamity Kingdom",
+	"Soulstorm Horizon", -- crazy+ maps
+	"Wildwood Waterways"
+}
+
 -- Remotes (Feature 4)
 local RemoteFolder = ReplicatedStorage:WaitForChild("Remote")
 local AddedWaiting = RemoteFolder:WaitForChild("AddedWaiting")
@@ -46,15 +89,15 @@ local AlertRemote = RemoteFolder:WaitForChild("Alert")
 
 -- Alert Listener
 TrackConnection(AlertRemote.OnClientEvent:Connect(function(msg)
-    if type(msg) == "string" and msg:lower():match("escaped") then
-        Escaped = true
-    end
+	if type(msg) == "string" and msg:lower():match("escaped") then
+		Escaped = true
+	end
 end))
 
 -- Anti-AFK
 TrackConnection(LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+	VirtualUser:CaptureController()
+	VirtualUser:ClickButton2(Vector2.new())
 end))
 
 -- ==============================================================================
@@ -62,12 +105,12 @@ end))
 -- ==============================================================================
 
 local Colors = {
-    System  = Color3.fromRGB(200, 200, 200), -- Grey/White
-    Success = Color3.fromRGB(0, 255, 127),   -- Spring Green
-    Warning = Color3.fromRGB(255, 170, 0),   -- Orange
-    Error   = Color3.fromRGB(255, 60, 60),   -- Red
-    Info    = Color3.fromRGB(0, 220, 255),   -- Cyan
-    Item    = Color3.fromRGB(170, 85, 255)   -- Purple
+	System  = Color3.fromRGB(200, 200, 200), -- Grey/White
+	Success = Color3.fromRGB(0, 255, 127),   -- Spring Green
+	Warning = Color3.fromRGB(255, 170, 0),   -- Orange
+	Error   = Color3.fromRGB(255, 60, 60),   -- Red
+	Info    = Color3.fromRGB(0, 220, 255),   -- Cyan
+	Item    = Color3.fromRGB(170, 85, 255)   -- Purple
 }
 
 local CLMAIN = LocalPlayer.PlayerScripts:WaitForChild("CL_MAIN_GameScript")
@@ -75,80 +118,80 @@ local CLMAINenv = getsenv(CLMAIN)
 local Alert
 
 if CLMAINenv and CLMAINenv.newAlert then
-    -- Fixed Alert Function: Color is Arg 2, Time is Arg 3 (nil = default)
-    Alert = function(Text, ColorType)
-        if ALERTS_ENABLED then
-            local SelectedColor = Colors[ColorType] or Colors.System
-            local Output = tostring(Text)
-            
-            pcall(function() 
-                -- Structure: newAlert(Message, Color, Time, Style)
-                -- We set Time to nil so the game uses its default duration
-                CLMAINenv.newAlert(Output, SelectedColor, nil, nil) 
-            end)
-            print(Output)
-        end
-    end
+	-- Fixed Alert Function: Color is Arg 2, Time is Arg 3 (nil = default)
+	Alert = function(Text, ColorType)
+		if ALERTS_ENABLED then
+			local SelectedColor = Colors[ColorType] or Colors.System
+			local Output = tostring(Text)
+
+			pcall(function() 
+				-- Structure: newAlert(Message, Color, Time, Style)
+				-- We set Time to nil so the game uses its default duration
+				CLMAINenv.newAlert(Output, SelectedColor, nil, nil) 
+			end)
+			print(Output)
+		end
+	end
 else
-    Alert = function(Text, ...)
-        print("[CONSOLE] " .. tostring(Text))
-    end
-    print("Your executor does not support Alerts.")
+	Alert = function(Text, ...)
+		print("[CONSOLE] " .. tostring(Text))
+	end
+	print("Your executor does not support Alerts.")
 end
 
 function isRandomString(str)
-    if #str == 0 then return false end
-    for i = 1, #str do
-        local ltr = str:sub(i, i)
-        if ltr:lower() == ltr then
-            return false
-        end
-    end
-    return true
+	if #str == 0 then return false end
+	for i = 1, #str do
+		local ltr = str:sub(i, i)
+		if ltr:lower() == ltr then
+			return false
+		end
+	end
+	return true
 end
 
 local function GetChar()
-    return LocalPlayer.Character or (LocalPlayer.CharacterAdded:wait() and LocalPlayer.Character)
+	return LocalPlayer.Character or (LocalPlayer.CharacterAdded:wait() and LocalPlayer.Character)
 end
 
 local function Noclip(Toggle)
-    local char = GetChar()
-    if char then
-        for i, v in char:GetChildren() do
-            if v.ClassName == "Part" then
-                v.CanCollide = not Toggle
-            end
-        end
-    end
+	local char = GetChar()
+	if char then
+		for i, v in char:GetChildren() do
+			if v.ClassName == "Part" then
+				v.CanCollide = not Toggle
+			end
+		end
+	end
 end
 
 local function Check(Flag)
-    local char = GetChar()
-    if not char then return false end
-    local HumanoidRootPart = char:FindFirstChild("HumanoidRootPart")
-    if not HumanoidRootPart then return false end
+	local char = GetChar()
+	if not char then return false end
+	local HumanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+	if not HumanoidRootPart then return false end
 
-    if Flag == "InLift" then
-        if HumanoidRootPart.Position.X < 50 and HumanoidRootPart.Position.Z > 70 then
-            return true
-        end
-    elseif Flag == "InGame" then
-        if HumanoidRootPart.Position.X > 50 then
-            return true
-        end
-    end
-    return false
+	if Flag == "InLift" then
+		if HumanoidRootPart.Position.X < 50 and HumanoidRootPart.Position.Z > 70 then
+			return true
+		end
+	elseif Flag == "InGame" then
+		if HumanoidRootPart.Position.X > 50 then
+			return true
+		end
+	end
+	return false
 end
 
 local function GetRandomPointInPart(Part)
-    local Size = Part.Size
-    local CFramePos = Part.CFrame
-    
-    local Rx = (math.random() - 0.5) * (Size.X * 0.9)
-    local Ry = (math.random() - 0.5) * (Size.Y * 0.9)
-    local Rz = (math.random() - 0.5) * (Size.Z * 0.9)
-    
-    return CFramePos * CFrame.new(Rx, Ry, Rz)
+	local Size = Part.Size
+	local CFramePos = Part.CFrame
+
+	local Rx = (math.random() - 0.5) * (Size.X * 0.9)
+	local Ry = (math.random() - 0.5) * (Size.Y * 0.9)
+	local Rz = (math.random() - 0.5) * (Size.Z * 0.9)
+
+	return CFramePos * CFrame.new(Rx, Ry, Rz)
 end
 
 -- ==============================================================================
@@ -159,145 +202,145 @@ local MapDetect
 local ConnectMap
 
 local function OnMapLoad(Map)
-    CurrentlyFarming = true
-    Escaped = false 
+	CurrentlyFarming = true
+	Escaped = false 
 
-    local Settings = Map:WaitForChild("Settings", 10)
-    if Settings then
-        local MapName = Settings:GetAttribute("MapName")
-        if MapName then 
-            Alert("[MAP] Config Loaded: " .. MapName, "Info") 
-        end
-    end
-    
-    if Check("InGame") == false then
-        Alert("[STATUS] Outside game zone. Standing by...", "Warning")
-    end
+	local Settings = Map:WaitForChild("Settings", 10)
+	if Settings then
+		local MapName = Settings:GetAttribute("MapName")
+		if MapName then 
+			Alert("[MAP] Config Loaded: " .. MapName, "Info") 
+		end
+	end
 
-    local Buttons = {}
-    -- Single Scan
-    for i, MapObject in pairs(Map:GetDescendants()) do
-        if isRandomString(MapObject.Name) and MapObject.ClassName == "Model" then
-            local Hitbox
-            for i, Candidate in pairs(MapObject:GetChildren()) do
-                if Candidate:IsA("BasePart") and tostring(Candidate.BrickColor) ~= "Medium stone grey" then
-                    Hitbox = Candidate
-                    break
-                end
-            end
-            if Hitbox and isRandomString(Hitbox.Name) then
-                Hitbox.Name = "Hitbox"
-                table.insert(Buttons, MapObject)
-            end
-        end
-    end
+	if Check("InGame") == false then
+		Alert("[STATUS] Outside game zone. Standing by...", "Warning")
+	end
 
-    local HumanoidRootPart = GetChar():WaitForChild("HumanoidRootPart")
-    -- Items
-    local LostPage = Map:FindFirstChild("_LostPage", true)
-    local Rescue = Map:FindFirstChild("_Rescue", true)
-    local OriginalCFrame = HumanoidRootPart.CFrame
-    
-    if LostPage then
-        HumanoidRootPart.CFrame = LostPage.CFrame
-        task.wait()
-        HumanoidRootPart.CFrame = OriginalCFrame
-        Alert("[COLLECT] Hidden Page Acquired.", "Item")
-    end
-    if Rescue then
-        HumanoidRootPart.CFrame = Rescue.Contact.CFrame
-        task.wait()
-        HumanoidRootPart.CFrame = OriginalCFrame
-        Alert("[ACTION] Survivor Rescued.", "Item")
-    end
+	local Buttons = {}
+	-- Single Scan
+	for i, MapObject in pairs(Map:GetDescendants()) do
+		if isRandomString(MapObject.Name) and MapObject.ClassName == "Model" then
+			local Hitbox
+			for i, Candidate in pairs(MapObject:GetChildren()) do
+				if Candidate:IsA("BasePart") and tostring(Candidate.BrickColor) ~= "Medium stone grey" then
+					Hitbox = Candidate
+					break
+				end
+			end
+			if Hitbox and isRandomString(Hitbox.Name) then
+				Hitbox.Name = "Hitbox"
+				table.insert(Buttons, MapObject)
+			end
+		end
+	end
 
-    -- Auto Farm Loop
-    Alert("[FARM] Sequence Initialized. Scanning...", "Success")
-    local CurrentButton = nil
-    local Humanoid = GetChar():WaitForChild("Humanoid")
-    
-    local GodMode = Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-        Humanoid.Health = 1000
-    end)
-    TrackConnection(GodMode)
-    
-    local HRP = GetChar():FindFirstChild("HumanoidRootPart")
-    
-    Noclip(true)
-    
-    while RunService.Heartbeat:Wait() and Check("InGame") and getgenv().TomatoAutoFarm do
-        if not CurrentlyFarming then break end
+	local HumanoidRootPart = GetChar():WaitForChild("HumanoidRootPart")
+	-- Items
+	local LostPage = Map:FindFirstChild("_LostPage", true)
+	local Rescue = Map:FindFirstChild("_Rescue", true)
+	local OriginalCFrame = HumanoidRootPart.CFrame
 
-        local ExitRegion = Map:FindFirstChild("ExitRegion", true)
-        local HRP = GetChar():FindFirstChild("HumanoidRootPart")
-        if not HRP then break end
-        
-        local FailedScan = true
-        
-        if not ExitRegion then
-            -- == BUTTON PHASE ==
-            if Camera.CameraSubject ~= Humanoid then
-                Camera.CameraSubject = Humanoid
-            end
+	if LostPage then
+		HumanoidRootPart.CFrame = LostPage.CFrame
+		task.wait()
+		HumanoidRootPart.CFrame = OriginalCFrame
+		Alert("[COLLECT] Hidden Page Acquired.", "Item")
+	end
+	if Rescue then
+		HumanoidRootPart.CFrame = Rescue.Contact.CFrame
+		task.wait()
+		HumanoidRootPart.CFrame = OriginalCFrame
+		Alert("[ACTION] Survivor Rescued.", "Item")
+	end
 
-            HRP.Anchored = true
-            for i, Button in pairs(Buttons) do
-                if not getgenv().TomatoAutoFarm then break end 
+	-- Auto Farm Loop
+	Alert("[FARM] Sequence Initialized. Scanning...", "Success")
+	local CurrentButton = nil
+	local Humanoid = GetChar():WaitForChild("Humanoid")
 
-                local ButtonHitbox = Button:FindFirstChild("Hitbox")
-                if ButtonHitbox then
-                    CurrentButton = Button
-                    local TouchFound = Button:FindFirstChild("TouchInterest", true)
-                    local GuiFound = Button:FindFirstChildWhichIsA("BillboardGui", true)
-                    
-                    if (TouchFound and GuiFound) then
-                        FailedScan = false
-                        HRP.Anchored = false
-                        HRP.CFrame = CFrame.new(ButtonHitbox.Position - Vector3.new(math.random(), math.random(), math.random()))
-                        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                        task.wait(0.05)
-                        Humanoid:ChangeState(Enum.HumanoidStateType.Running)
-                        task.wait(0.05)
-                    end
-                end
-            end
-            if FailedScan == true then
-                RunService.Heartbeat:Wait()
-            end
+	local GodMode = Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+		Humanoid.Health = 1000
+	end)
+	TrackConnection(GodMode)
 
-        elseif ExitRegion then
-            -- == EXIT PHASE ==
-            Noclip(false)
-            HRP.Anchored = false
-            
-            if Camera.CameraSubject ~= ExitRegion then
-                Camera.CameraSubject = ExitRegion
-            end
+	local HRP = GetChar():FindFirstChild("HumanoidRootPart")
 
-            if not Escaped then
-                local TargetCFrame = GetRandomPointInPart(ExitRegion)
-                HRP.CFrame = TargetCFrame
-                HRP.Velocity = Vector3.zero
-                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            else
-                Escaped = false 
-                Camera.CameraSubject = Humanoid
-                Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
-                Alert("[SUCCESS] Escape Detected. Resetting...", "Success")
-                break
-            end
-        end
-    end
-    
-    if Camera.CameraSubject ~= Humanoid then
-        Camera.CameraSubject = Humanoid
-    end
-    Noclip(false)
-    Alert("[FINISH] Protocol Complete.", "Info")
-    if GodMode then GodMode:Disconnect() end
-    
-    Alert("[IDLE] Awaiting next match...", "System")
-    CurrentlyFarming = false
+	Noclip(true)
+
+	while RunService.Heartbeat:Wait() and Check("InGame") and getgenv().TomatoAutoFarm do
+		if not CurrentlyFarming then break end
+
+		local ExitRegion = Map:FindFirstChild("ExitRegion", true)
+		local HRP = GetChar():FindFirstChild("HumanoidRootPart")
+		if not HRP then break end
+
+		local FailedScan = true
+
+		if not ExitRegion then
+			-- == BUTTON PHASE ==
+			if Camera.CameraSubject ~= Humanoid then
+				Camera.CameraSubject = Humanoid
+			end
+
+			HRP.Anchored = true
+			for i, Button in pairs(Buttons) do
+				if not getgenv().TomatoAutoFarm then break end 
+
+				local ButtonHitbox = Button:FindFirstChild("Hitbox")
+				if ButtonHitbox then
+					CurrentButton = Button
+					local TouchFound = Button:FindFirstChild("TouchInterest", true)
+					local GuiFound = Button:FindFirstChildWhichIsA("BillboardGui", true)
+
+					if (TouchFound and GuiFound) then
+						FailedScan = false
+						HRP.Anchored = false
+						HRP.CFrame = CFrame.new(ButtonHitbox.Position - Vector3.new(math.random(), math.random(), math.random()))
+						Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+						task.wait(0.05)
+						Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+						task.wait(0.05)
+					end
+				end
+			end
+			if FailedScan == true then
+				RunService.Heartbeat:Wait()
+			end
+
+		elseif ExitRegion then
+			-- == EXIT PHASE ==
+			Noclip(false)
+			HRP.Anchored = false
+
+			if Camera.CameraSubject ~= ExitRegion then
+				Camera.CameraSubject = ExitRegion
+			end
+
+			if not Escaped then
+				local TargetCFrame = GetRandomPointInPart(ExitRegion)
+				HRP.CFrame = TargetCFrame
+				HRP.Velocity = Vector3.zero
+				Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			else
+				Escaped = false 
+				Camera.CameraSubject = Humanoid
+				Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+				Alert("[SUCCESS] Escape Detected. Resetting...", "Success")
+				break
+			end
+		end
+	end
+
+	if Camera.CameraSubject ~= Humanoid then
+		Camera.CameraSubject = Humanoid
+	end
+	Noclip(false)
+	Alert("[FINISH] Protocol Complete.", "Info")
+	if GodMode then GodMode:Disconnect() end
+
+	Alert("[IDLE] Awaiting next match...", "System")
+	CurrentlyFarming = false
 end
 
 -- ==============================================================================
@@ -305,74 +348,67 @@ end
 -- ==============================================================================
 
 ConnectMap = function()
-    MapDetect = Multiplayer.ChildAdded:Connect(function(NewMap)
-        NewMap:GetPropertyChangedSignal("Name"):Wait()
-        
-        if getgenv().TomatoAutoFarm == true then
-            OnMapLoad(NewMap)
-            Alert("[NET] Map Detected. Connecting...", "Info")
-        end
-    end)
-    TrackConnection(MapDetect)
+	MapDetect = Multiplayer.ChildAdded:Connect(function(NewMap)
+		NewMap:GetPropertyChangedSignal("Name"):Wait()
+
+		if getgenv().TomatoAutoFarm == true then
+			OnMapLoad(NewMap)
+			Alert("[NET] Map Detected. Connecting...", "Info")
+		end
+	end)
+	TrackConnection(MapDetect)
 end
 
 if _G.LoopCancel ~= nil then
-    _G.LoopCancel = true
-    task.wait(.1)
+	_G.LoopCancel = true
+	task.wait(.1)
 end
 _G.LoopCancel = false
 Alert("[SYSTEM] AutoFarm Active.", "Success")
 
-task.spawn(function()
-    while task.wait(1) do
-        if _G.LoopCancel == true then break end
-        
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local inLift = Check("InLift")
-            local inGame = Check("InGame")
-
-            if not inLift and not inGame and getgenv().TomatoAutoFarm then
-                AddedWaiting:FireServer()
-		        task.wait(1)
-		        local args = {
-			        0.6265190986242665,
-			        14,
-		        	0
-	             	}
-	        	game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("UpdMapVote"):FireServer(unpack(args))
-	        	task.wait(1.5)
-	        	local args = {
-	        		0.6265190986242665,
-	        		10,
-	        		0
-	        	}
-	        	game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("UpdMapVote"):FireServer(unpack(args))
-            end
-        end
-    end
+NewMapVote.OnClientEvent:Connect(function(NewMapData)
+	-- Vote data is stored in NewMapData.mapData
+	MapsToVote = {}
+	if getgenv().AutoVote == true then
+		for _, MapData in pairs(NewMapData.mapData) do
+			if not MapData.locked and not table.find(BlacklistedMaps, MapData.name) then
+				table.insert(MapsToVote, MapData)
+			end
+		end
+		if #MapsToVote == 0 then
+			NotifyRemoteClient:Fire("MapsToVote table is empty!, all free vote choices are presumably blacklisted maps.", "Auto vote")
+			return
+		end
+		local ChosenMapInfo = MapsToVote[math.random(1, #MapsToVote)]
+		DoMapVote:Fire(ChosenMapInfo.ID, 0)
+		AlertRemoteClient:Fire(string.format("Auto-voted for: %s", ChosenMapInfo.name), Color3.fromRGB(0, 255, 0), 10, nil, nil, true)
+		task.delay(0.1, function()
+			VotingFrame.ConfirmVote.Text = "Auto Voted"
+		end)
+	end
 end)
 
 task.spawn(function()
-    while task.wait(0.5) do
-        if _G.LoopCancel == true then
-            Alert("[SYSTEM] Previous Script Terminated.", "Error")
-            if MapDetect then MapDetect:Disconnect() end
-            break
-        end
-        
-        if not MapDetect then
-            ConnectMap()
-        end
+	while task.wait(0.5) do
+		if _G.LoopCancel == true then
+			Alert("[SYSTEM] Previous Script Terminated.", "Error")
+			if MapDetect then MapDetect:Disconnect() end
+			break
+		end
 
-        if getgenv().TomatoAutoFarm == false then
-            Alert("[PAUSE] Operation suspended by user.", "Warning")
-            repeat 
-                task.wait(0.5) 
-            until getgenv().TomatoAutoFarm == true or _G.LoopCancel == true
-            
-            if _G.LoopCancel == false then
-                Alert("[RESUME] Operation continued.", "Success")
-            end
-        end
-    end
+		if not MapDetect then
+			ConnectMap()
+		end
+
+		if getgenv().TomatoAutoFarm == false then
+			Alert("[PAUSE] Operation suspended by user.", "Warning")
+			repeat 
+				task.wait(0.5) 
+			until getgenv().TomatoAutoFarm == true or _G.LoopCancel == true
+
+			if _G.LoopCancel == false then
+				Alert("[RESUME] Operation continued.", "Success")
+			end
+		end
+	end
 end)
