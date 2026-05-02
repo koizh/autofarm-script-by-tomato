@@ -365,6 +365,7 @@ if _G.LoopCancel ~= nil then
 end
 _G.LoopCancel = false
 Alert("[SYSTEM] AutoFarm Active.", "Success")
+AddedWaiting:FireServer()
 
 NewMapVote.OnClientEvent:Connect(function(NewMapData)
 	-- Vote data is stored in NewMapData.mapData
