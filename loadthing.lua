@@ -76,7 +76,6 @@ local BlacklistedMaps = {
 	"Liminal Fruticore",
 	"Firewatch",
 	"Twilight Park",
-	"Pitfall Temple",
 	"Calamity Kingdom",
 	"Soulstorm Horizon", -- crazy+ maps
 	"Wildwood Waterways"
