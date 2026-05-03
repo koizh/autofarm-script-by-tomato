@@ -365,7 +365,21 @@ if _G.LoopCancel ~= nil then
 end
 _G.LoopCancel = false
 Alert("[SYSTEM] AutoFarm Active.", "Success")
-AddedWaiting:FireServer()
+
+task.spawn(function()
+    while task.wait(1) do
+        if _G.LoopCancel == true then break end
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local inLift = Check("InLift")
+            local inGame = Check("InGame")
+
+            if not inLift and not inGame and getgenv().TomatoAutoFarm then
+                AddedWaiting:FireServer()
+            end
+        end
+    end
+end)
 
 NewMapVote.OnClientEvent:Connect(function(NewMapData)
 	-- Vote data is stored in NewMapData.mapData
